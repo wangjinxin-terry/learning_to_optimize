@@ -23,3 +23,5 @@ loss: the output of each layer x_h. \Sum_h (x_h - x)^2
 optimizer: Adam
 
 lr: 5e-4
+
+![avatar](./result/loss.png)
