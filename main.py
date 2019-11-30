@@ -1,6 +1,7 @@
 
 from __future__ import print_function
 import argparse
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -42,23 +43,29 @@ def train(args, model, device, train_loader, optimizer, epoch):
                 global_step = epoch * len(train_loader) + batch_idx
                 summary_writer.add_scalar('train_loss', loss.item(), global_step=global_step)
 
-def test(args, model, device, test_loader):
+def test(args, model, device, test_loader,epoch):
     model.eval()
     test_loss = 0
+    test_denom = 0
     with torch.no_grad():
         for y_, x_ in test_loader:
             y_, x_ = y_.to(device), x_.to(device)
+            # 算二范数
+            denom = torch.norm(x_)
+            test_denom += denom.item()
             xhs_ = model(y_)
-            for t in range(model._T):
-                loss = criterion(xhs_[t + 1], x_)
-                test_loss += loss.item()
+            # for t in range(model._T):
+            #     loss = criterion(xhs_[t + 1], x_)
+            #     test_loss += loss.item()
+            loss = criterion(xhs_[model._T], x_)
+            test_loss += loss.item()
 
-    test_loss /= len(test_loader.dataset)
+    test_dB = 10 * math.log10(test_loss / test_denom)
     if summary_writer:
-        summary_writer.add_scalar('test_loss', test_loss)
+        summary_writer.add_scalar('test_loss', test_dB,global_step=epoch)
 
-    print('\nTest set: Average loss: {:.4f}\n'.format(
-        test_loss))
+    print('\nTest set: test_dB: {:.4f}\n'.format(
+        test_dB))
 
 def main():
     # Training settings
@@ -84,8 +91,8 @@ def main():
 
     torch.manual_seed(args.seed)
 
-    # device = torch.device("cuda" if use_cuda else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
+    # device = torch.device("cpu")
 
 
     # dataset
@@ -108,7 +115,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        test(args, model, device, test_loader)
+        test(args, model, device, test_loader,epoch)
 
     if args.save_model:
         torch.save(model.state_dict(), "lista.pt")

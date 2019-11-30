@@ -14,8 +14,8 @@ def shrink(input_, theta_):
     """
     Soft thresholding function with input input_ and threshold theta_.
     """
-    theta_ = torch.max(theta_, torch.tensor([0.0]))
-    return torch.sign(input_) * torch.max(torch.abs(input_) - theta_, torch.tensor([0.0]))
+    theta_ = torch.max(theta_, torch.tensor([0.0], device=input_.device))
+    return torch.sign(input_) * torch.max(torch.abs(input_) - theta_, torch.tensor([0.0], device=input_.device))
 
 
 class LISTA(nn.Module):
@@ -67,33 +67,36 @@ class LISTA(nn.Module):
         B = torch.transpose(self._A, 0, 1) / self._scale
         W = torch.eye(self._N, dtype=torch.float32) - torch.matmul(B, self._A)
 
-        # with tf.variable_scope (self._scope, reuse=False) as vs:
-            # constant
-
         self._kA_ = nn.Parameter(self._A, requires_grad=False)
 
         B = B.transpose(0, 1)
-        Bs_.append(nn.Parameter(B.clone(), requires_grad=True))
+        B_ = nn.Parameter(B.clone(), requires_grad=True)
+        self.register_parameter('B_', B_)   # 注册参数
+        Bs_.append(B_)
         Bs_ = Bs_ * self._T
+
 
         W = W.transpose(0, 1)
         if not self._untied: # tied model
-            Ws_.append(nn.Parameter(W.clone(), requires_grad=True))
+            W_ = nn.Parameter(W.clone(), requires_grad=True)
+            self.register_parameter('W_', W_)
+            Ws_.append(W_)
             Ws_ = Ws_ * self._T
 
         for t in range(self._T):
-            thetas_.append(nn.Parameter(self._theta, requires_grad=True))
+            theta_ = nn.Parameter(self._theta, requires_grad=True)
+            self.register_parameter('theta_{}'.format(t), theta_)
+            thetas_.append(theta_)
             if self._untied:  # untied model
-                Ws_.append(nn.Parameter(W.clone(), requires_grad=True))
+                W_ = nn.Parameter(W.clone(), requires_grad=True)
+                self.register_parameter('W_{}'.format(t), W_)
+                Ws_.append(W_)
 
         # Collection of all trainable variables in the model layer by layer.
         # We name it as `vars_in_layer` because we will use it in the manner:
         # vars_in_layer [t]
 
-
         self.vars_in_layer = list(zip(Bs_, Ws_, thetas_))
-
-    # def setup_parameters(self):
 
 
     def forward(self, y_, x0_=None):
@@ -103,8 +106,6 @@ class LISTA(nn.Module):
         # :param x0_: [N, B]
         # :return:
         # '''
-        #
-        # xhs_ = [] # collection of the regressed sparse codes
 
         '''
         pytorch version, batch_size first
@@ -117,7 +118,7 @@ class LISTA(nn.Module):
 
         if x0_ is None:
             batch_size = y_.shape[0]
-            xh_ = torch.zeros(batch_size, self._N, dtype=torch.float32)
+            xh_ = torch.zeros(batch_size, self._N, dtype=torch.float32, device=y_.device)
         else:
             xh_ = x0_
         xhs_.append(xh_)
@@ -131,3 +132,17 @@ class LISTA(nn.Module):
             xhs_.append(xh_)
 
         return xhs_
+
+
+if __name__ == '__main__':
+    # [M, N]
+    A = torch.randn(6, 8)
+    T = 2
+    lam = 0.1
+    lista = LISTA(A, T, lam)
+
+    # [B, M]
+    y_ = torch.randn(10, 6)
+    xhs_ = lista(y_)
+    from IPython import embed
+    embed()
