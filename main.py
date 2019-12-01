@@ -68,6 +68,7 @@ def test(args, model, device, test_loader,epoch):
             test_loss += loss.item()
 
     test_dB = 10 * math.log10(test_loss / test_denom)
+    print("test_loss: {:.3e}, test_denom: {:.3e}".format(test_loss, test_denom))
     if summary_writer:
         summary_writer.add_scalar('test_dB', test_dB,global_step=epoch)
     return test_dB
@@ -79,7 +80,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=100, metavar='N',
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                         help='learning rate (default: 5e-4)')
@@ -118,7 +119,7 @@ def main():
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=4, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, verbose=True)
     for epoch in range(1, args.epochs + 1):
         train_loss,train_dB = train(args, model, device, train_loader, optimizer, epoch)
         scheduler.step(train_loss)

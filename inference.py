@@ -36,6 +36,7 @@ def test(model, device, test_loader):
                 test_loss[t] += loss.item()
     test_loss = np.array(test_loss)
     test_dB = 10 * np.log10(test_loss / test_denom)
+    print("test_loss: {:.3e}, test_denom: {:.3e}".format(test_loss[-1], test_denom))
     np.save('test_dB.npy', test_dB)
 
 test(model,device,test_datasets)
