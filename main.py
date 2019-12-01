@@ -59,13 +59,15 @@ def test(args, model, device, test_loader,epoch):
             y_, x_ = y_.to(device), x_.to(device)
             # 算二范数
             denom = torch.norm(x_)
-            test_denom += denom.item()
+            denom = denom.item()
+            test_denom += denom ** 2
             xhs_ = model(y_)
             # for t in range(model._T):
             #     loss = criterion(xhs_[t + 1], x_)
             #     test_loss += loss.item()
             loss = criterion(xhs_[model._T], x_)
-            test_loss += loss.item()
+            loss = loss.item()
+            test_loss += loss ** 2
 
     test_dB = 10 * math.log10(test_loss / test_denom)
     print("test_loss: {:.3e}, test_denom: {:.3e}".format(test_loss, test_denom))
@@ -108,7 +110,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         train_datasets, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        test_datasets, batch_size=args.batch_size, shuffle=True, **kwargs)
+        test_datasets, batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     # model
     A = train_datasets.A

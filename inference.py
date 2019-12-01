@@ -29,16 +29,22 @@ def test(model, device, test_loader):
             y_, x_ = y_.to(device), x_.to(device)
             # 算二范数
             denom = torch.norm(x_)
-            test_denom += denom.item()
+            denom = denom.item()
+            test_denom += denom ** 2
             xhs_ = model(y_)
             for t in range(model._T):
                 loss = criterion(xhs_[t], x_)
-                test_loss[t] += loss.item()
+                loss = loss.item()
+                test_loss[t] += loss ** 2
     test_loss = np.array(test_loss)
     test_dB = 10 * np.log10(test_loss / test_denom)
     print("test_loss: {:.3e}, test_denom: {:.3e}".format(test_loss[-1], test_denom))
     np.save('test_dB.npy', test_dB)
 
-test(model,device,test_datasets)
+
+kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+test_loader = torch.utils.data.DataLoader(
+    test_datasets, batch_size=1000, shuffle=True, **kwargs)
+test(model,device,test_loader)
 
 
