@@ -132,17 +132,3 @@ class LISTA(nn.Module):
             xhs_.append(xh_)
 
         return xhs_
-
-
-if __name__ == '__main__':
-    # [M, N]
-    A = torch.randn(6, 8)
-    T = 2
-    lam = 0.1
-    lista = LISTA(A, T, lam)
-
-    # [B, M]
-    y_ = torch.randn(10, 6)
-    xhs_ = lista(y_)
-    from IPython import embed
-    embed()
